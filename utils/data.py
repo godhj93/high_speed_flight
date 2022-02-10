@@ -13,14 +13,14 @@ class DataLoader():
         nyu2_train = list((row.split(',') for row in (csv).split('\n') if len(row) > 0))
 
         # Test on a smaller dataset
-        if DEBUG: nyu2_train = nyu2_train[:10]    
+        if DEBUG: nyu2_train = nyu2_train[:32]    
 
         # A vector of depth filenames.
         self.labels = [i[1] for i in nyu2_train]
 
         # Length of dataset
         self.length = len(self.labels)
-        print(self.length)
+        
     def _parse_function(self, x_train): 
         # Read images from disk
         depth_resized = tf.image.resize(tf.image.decode_jpeg(tf.io.read_file(x_train)), [self.shape_depth[0], self.shape_depth[1]])
