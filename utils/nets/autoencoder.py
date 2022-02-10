@@ -60,7 +60,7 @@ class Decoder(tf.keras.Model):
 
     def call(self, feature):
         
-        input_shape = feature.shape
+        input_shape = feature.shape 
 
         reshaped_feature = tf.reshape(feature, (input_shape[0], 15, 20, -1))
         print(reshaped_feature.shape)
