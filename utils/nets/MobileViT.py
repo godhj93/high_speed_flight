@@ -21,7 +21,7 @@ class MobileViT(tf.keras.Model):
             'XXS':[16, 16, 24, 24, 24, 48, 64, 64, 80, 80, 96, 320]
              }
         if arch not in ['S', 'XS', 'XXS']:
-            raise ValueError("arch must be 'X', 'XS', 'XXS'")
+            raise ValueError("arch must be 'S', 'XS', 'XXS'")
 
         arch = ViTArch[arch]
         self.conv3x3 = layers.Conv2D(kernel_size= 3, filters= arch[0], strides= 2, padding= 'same')
@@ -93,10 +93,6 @@ class InvertedResidual(tf.keras.layers.Layer):
         super(InvertedResidual, self).__init__()
         self.strides = strides
         self.filters = filters
-        self.bn1 = layers.BatchNormalization()
-        self.bn2 = layers.BatchNormalization()
-        self.bn3 = layers.BatchNormalization()
-        self.add = layers.Add()
     
         if self.strides not in [1,2]:
             raise ValueError('strides must be 1 or 2')
