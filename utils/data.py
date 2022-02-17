@@ -1,43 +1,42 @@
-
-  
 import tensorflow as tf
+from tensorflow.keras.datasets import cifar10, cifar100
+from imgaug.augmenters import RandAugment
 
-class DataLoader():
-    def __init__(self, csv_file='data/nyu2_train.csv', DEBUG=False):
-       
-        self.shape_depth = (240, 320, 1)
-        self.read_nyu_data(csv_file, DEBUG=DEBUG)
+rand_augmentation = RandAugment(n=3, m=7)
+tf.random.set_seed(777)
+def random_augmentation(images):
+    images = tf.cast(images, tf.uint8)
+    return rand_augmentation(images=images.numpy())
 
-    def read_nyu_data(self, csv_file, DEBUG=False):
-        csv = open(csv_file, 'r').read()
-        nyu2_train = list((row.split(',') for row in (csv).split('\n') if len(row) > 0))
+def data_load(dataset= 'cifar10', batch_size= 16, size= 256, DEBUG=False):
+    AUTO = tf.data.AUTOTUNE
+    if dataset=='cifar10':
+        (x_train,y_train), (x_test, y_test) = cifar10.load_data()
+    elif dataset=='cifar100':
+        (x_train,y_train), (x_test, y_test) = cifar100.load_data()
+    else:
+        raise ValueError("dataset must be cifar10 or cifar100")
 
-        # Test on a smaller dataset
-        if DEBUG: nyu2_train = nyu2_train[:32]    
+    if DEBUG==True:
+        print(f"Debug Mode")
+        (x_train,y_train) = (x_train[:1000,:,:,:], y_train[:1000,:])
+        (x_test,y_test) = (x_test[:100,:,:,:], y_test[:100,:])
+        print(f"length of train and test data: {len(x_train), len(x_test)}")
 
-        # A vector of depth filenames.
-        self.labels = [i[1] for i in nyu2_train]
+    train_ds = (
+        tf.data.Dataset.from_tensor_slices((x_train,y_train)).
+        batch(batch_size).
+        shuffle(batch_size*100, seed=777, reshuffle_each_iteration=True).
+        map(lambda x,y: (tf.image.resize(x, (size,size), method='bicubic'), y), num_parallel_calls=AUTO).
+        map(lambda x,y: (tf.py_function(random_augmentation, [x], [tf.float32])[0], y),num_parallel_calls=AUTO).
+        map(lambda x,y: (x/255.0, y),num_parallel_calls=AUTO)
+        ).prefetch(AUTO)
 
-        # Length of dataset
-        self.length = len(self.labels)
-        
-    def _parse_function(self, x_train): 
-        # Read images from disk
-        depth_resized = tf.image.resize(tf.image.decode_jpeg(tf.io.read_file(x_train)), [self.shape_depth[0], self.shape_depth[1]])
+    test_ds = (
+        tf.data.Dataset.from_tensor_slices((x_test,y_test)).
+        batch(batch_size).
+        map(lambda x,y: (tf.image.resize(x, (size,size), method='bicubic'), y), num_parallel_calls=AUTO).
+        map(lambda x,y: (x/255.0,y), num_parallel_calls=AUTO)
+    ).prefetch(AUTO)
 
-        # Format
-        depth = tf.image.convert_image_dtype(depth_resized / 255.0, dtype=tf.float32)
-        
-        # Normalize the depth values (in m)
-        depth = tf.clip_by_value(depth * 10, 0, 10)
-
-        return depth, depth
-
-    def get_batched_dataset(self, batch_size):
-        self.dataset = tf.data.Dataset.from_tensor_slices((self.labels))
-        self.dataset = self.dataset.shuffle(buffer_size=len(self.labels), reshuffle_each_iteration=True)
-        self.dataset = self.dataset.repeat()
-        self.dataset = self.dataset.map(map_func=self._parse_function, num_parallel_calls=tf.data.AUTOTUNE)
-        self.dataset = self.dataset.batch(batch_size=batch_size).prefetch(tf.data.AUTOTUNE)
-
-        return self.dataset
+    return train_ds, test_ds
