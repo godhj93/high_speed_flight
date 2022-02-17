@@ -19,9 +19,9 @@ def main():
 
     model = AutoEncoder().model()
     print(model.summary())
-    trainer = Trainer(model, epochs=args.ep, batch_size=args.bs, DEBUG=False)
+    trainer = Trainer(model, epochs=args.ep, batch_size=args.bs, DEBUG=True)
     trainer.train()
-    trainer.save_model(name=args.name+'_'+args.arch)
+    trainer.save_model(name=args.name+'_')
     
 if __name__ == '__main__':
 

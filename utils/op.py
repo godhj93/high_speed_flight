@@ -73,7 +73,6 @@ class Trainer:
                 test_bar.set_description(f"Loss: {self.test_loss.result().numpy():.4f}")
             with self.test_summary_writer.as_default():
                 tf.summary.scalar('loss', self.test_loss.result(), step=e)
-                tf.summary.scalar('accuracy', self.test_accuracy.result(), step=e)
 
             self.reset_metric()
         
