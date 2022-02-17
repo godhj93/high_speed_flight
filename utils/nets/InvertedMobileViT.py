@@ -7,11 +7,10 @@ class InvertedMobileViT(tf.keras.Model):
     def __init__(self):
         super(InvertedMobileViT, self).__init__()
 
-        self.flatten = layers.Flatten()
-        self.linear1 = layers.Dense(640, activation=tf.nn.swish) # 1*640
+        self.flatten = layers.Flatten() # 32
+        self.linear1 = layers.Dense(640, activation=tf.nn.swish) # 640
         self.reshape = layers.Reshape([1,1,-1]) # 1*1*640
-        # self.upsample1 = Upsampling() # 8*8*640
-        self.upsample1 = layers.UpSampling2D(size=(8,8))
+        self.upsample1 = layers.UpSampling2D(size=(8,8)) # 8*8*640
         
         self.point_conv1 = layers.Conv2D(filters=160, kernel_size=1, strides=1, padding='same', activation=tf.nn.swish) # 8*8*160
         self.MViT_block_3 = MViT_block(dim=240, n=3, L=3) # 8*8*160
@@ -32,7 +31,7 @@ class InvertedMobileViT(tf.keras.Model):
         self.point_conv5 = layers.Conv2DTranspose(filters=32, kernel_size=3, strides=2, padding='same', activation=tf.nn.swish) # 128*128*32
 
         self.MV1_1 = InvertedResidual(strides= 1, filters= 32) # 128*128*32
-        self.conv3x3 = layers.Conv2D(kernel_size= 3, filters= 16, strides= 2, padding= 'same') # 128*128*16
+        self.conv3x3 = layers.Conv2D(kernel_size= 3, filters= 16, strides= 1, padding= 'same') # 128*128*16
         self.point_conv6 = layers.Conv2DTranspose(filters=3, kernel_size=3, strides=2, padding='same', activation=tf.nn.swish) # 256*256*3
   
 
