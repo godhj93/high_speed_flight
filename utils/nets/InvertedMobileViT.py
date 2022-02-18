@@ -15,24 +15,24 @@ class InvertedMobileViT(tf.keras.Model):
         self.point_conv1 = layers.Conv2D(filters=160, kernel_size=1, strides=1, padding='same', activation=tf.nn.swish) # 8*8*160
         self.MViT_block_3 = MViT_block(dim=240, n=3, L=3) # 8*8*160
         self.MV5_1 = InvertedResidual(strides=1, filters=160) # 8*8*160
-        self.point_conv2 = layers.Conv2DTranspose(filters=128, kernel_size=3, strides=2, padding='same', activation=tf.nn.swish) # 16*16*128
+        self.upsample2 = layers.UpSampling2D(size=(2,2)) # 16*16*128
 
         self.MViT_block_2 = MViT_block(dim=192, n=3, L=4) # 16*16*128
         self.MV4_1 = InvertedResidual(strides=1, filters=128) #16*16*128
-        self.point_conv3 = layers.Conv2DTranspose(filters=96, kernel_size=3, strides=2, padding='same', activation=tf.nn.swish) # 32*32*96
+        self.upsample3 = layers.UpSampling2D(size=(2,2)) # 32*32*96
 
         self.MViT_block_1 = MViT_block(dim=144, n=3, L=2) # 32*32*96
         self.MV3_1 = InvertedResidual(strides= 1, filters= 96) # 32*32*96
-        self.point_conv4 = layers.Conv2DTranspose(filters=64, kernel_size=3, strides=2, padding='same', activation=tf.nn.swish) # 64*64*64
+        self.upsample4 = layers.UpSampling2D(size=(2,2)) # 64*64*64
 
         self.MV2_3 = InvertedResidual(strides= 1, filters= 64) # 64*64*64
         self.MV2_2 = InvertedResidual(strides= 1, filters= 64) # 64*64*64
         self.MV2_1 = InvertedResidual(strides= 1, filters= 64) # 64*64*64
-        self.point_conv5 = layers.Conv2DTranspose(filters=32, kernel_size=3, strides=2, padding='same', activation=tf.nn.swish) # 128*128*32
+        self.upsample5 = layers.UpSampling2D(size=(2,2)) # 128*128*32
 
         self.MV1_1 = InvertedResidual(strides= 1, filters= 32) # 128*128*32
         self.conv3x3 = layers.Conv2D(kernel_size= 3, filters= 16, strides= 1, padding= 'same') # 128*128*16
-        self.point_conv6 = layers.Conv2DTranspose(filters=1, kernel_size=3, strides=2, padding='same', activation=tf.nn.swish) # 256*256*3
+        self.upsample6 = layers.UpSampling2D(size=(2,2)) # 256*256*3
   
 
     def call(self, x):
@@ -44,24 +44,24 @@ class InvertedMobileViT(tf.keras.Model):
         y = self.point_conv1(y)
         y = self.MViT_block_3(y)
         y = self.MV5_1(y)
-        y = self.point_conv2(y)
+        y = self.upsample2(y)
 
         y = self.MViT_block_2(y)
         y = self.MV4_1(y)
-        y = self.point_conv3(y)
+        y = self.upsample3(y)
 
         y = self.MViT_block_1(y)
         y = self.MV3_1(y)
-        y = self.point_conv4(y)
+        y = self.upsample4(y)
 
         y = self.MV2_3(y)
         y = self.MV2_2(y)
         y = self.MV2_1(y)
-        y = self.point_conv5(y)
+        y = self.upsample5(y)
 
         y = self.MV1_1(y)
         y = self.conv3x3(y)
-        y = self.point_conv6(y)
+        y = self.upsample6(y)
 
         return y
 
