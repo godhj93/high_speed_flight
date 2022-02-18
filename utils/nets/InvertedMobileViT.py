@@ -32,7 +32,7 @@ class InvertedMobileViT(tf.keras.Model):
 
         self.MV1_1 = InvertedResidual(strides= 1, filters= 32) # 128*128*32
         self.conv3x3 = layers.Conv2D(kernel_size= 3, filters= 16, strides= 1, padding= 'same') # 128*128*16
-        self.point_conv6 = layers.Conv2DTranspose(filters=3, kernel_size=3, strides=2, padding='same', activation=tf.nn.swish) # 256*256*3
+        self.point_conv6 = layers.Conv2DTranspose(filters=1, kernel_size=3, strides=2, padding='same', activation=tf.nn.swish) # 256*256*3
   
 
     def call(self, x):

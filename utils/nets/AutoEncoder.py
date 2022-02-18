@@ -8,9 +8,9 @@ class AutoEncoder(tf.keras.Model):
     def __init__(self):
         super(AutoEncoder, self).__init__()
 
-        self.encoder = MobileViT(arch='S', classes=32).model(input_shape=(256,256,3))
+        self.encoder = MobileViT(arch='S', classes=32).model(input_shape=(256,256,1))
         self.decoder = InvertedMobileViT().model(input_shape=(32))
-        self.build(input_shape=(None,256,256,3))
+        self.build(input_shape=(None,256,256,1))
     def call(self, x):
 
         y = self.encoder(x)
