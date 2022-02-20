@@ -1,4 +1,3 @@
-from tkinter import N
 import tensorflow as tf
 from utils.op import Trainer
 import argparse
