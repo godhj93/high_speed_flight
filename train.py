@@ -9,7 +9,7 @@ for gpu in gpus:
 
 parser = argparse.ArgumentParser('Train MobilViT AutoEncoder')
 parser.add_argument("--ep", default=10, type=int,help="Epochs")
-parser.add_argument("--bs", default=32, type=int,help="Batch Size")
+parser.add_argument("--bs", default=8, type=int,help="Batch Size")
 #parser.add_argument("--arch", default='S', type=str,help="Architecture: [S, XS, XSS]")
 parser.add_argument("--data", default='NYUv2')
 parser.add_argument("--name", default='AutoEncoder')
@@ -17,7 +17,7 @@ args = parser.parse_args()
 
 def main():
 
-    autoencoder = AutoEncoder().model(input_shape=(256,256,1))
+    autoencoder = AutoEncoder(classes=64).model(input_shape=(256,256,1))
     print(autoencoder.summary())
     trainer = Trainer(autoencoder, epochs=args.ep, batch_size=args.bs, size= 256, DEBUG=False)
     trainer.train()
