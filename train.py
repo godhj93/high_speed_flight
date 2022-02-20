@@ -22,7 +22,7 @@ def main():
     
     autoencoder = AutoEncoder(classes=args.states).model(input_shape=(256,256,1))
     print(autoencoder.summary())
-    print(f"Epochs: {args.ep}\nBatch Size: {args.bs}\nAlpha: {float(args.alpha)} \n")
+    print(f"Epochs: {args.ep}\nBatch Size: {args.bs}\nAlpha: {float(args.alpha)}\nStates: {int(args.states)}")
     trainer = Trainer(autoencoder, epochs=args.ep, batch_size=args.bs, size= 256, alpha= args.alpha, DEBUG=False)
     trainer.train()
     trainer.save_model(name=args.name)
