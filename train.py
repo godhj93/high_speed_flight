@@ -13,15 +13,16 @@ parser.add_argument("--bs", default=8, type=int,help="Batch Size")
 #parser.add_argument("--arch", default='S', type=str,help="Architecture: [S, XS, XSS]")
 parser.add_argument("--data", default='NYUv2')
 parser.add_argument("--name", default='AutoEncoder')
+parser.add_argument("--alpha", default='Loss alpha')
 args = parser.parse_args()
 
 def main():
 
     autoencoder = AutoEncoder(classes=64).model(input_shape=(256,256,1))
     print(autoencoder.summary())
-    trainer = Trainer(autoencoder, epochs=args.ep, batch_size=args.bs, size= 256, DEBUG=False)
+    trainer = Trainer(autoencoder, epochs=args.ep, batch_size=args.bs, size= 256, alpha= args.alpha, DEBUG=False)
     trainer.train()
-    trainer.save_model(name=args.name+'_')
+    trainer.save_model(name=args.name)
     
 if __name__ == '__main__':
 

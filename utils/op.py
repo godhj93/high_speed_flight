@@ -12,7 +12,7 @@ class Trainer:
     Author: H.J Shin
     Date: 2022.02.17
     '''
-    def __init__(self, model, dataset='nyuv2', epochs=50, batch_size= 16, size=256, DEBUG=False):
+    def __init__(self, model, dataset='nyuv2', epochs=50, batch_size= 16, size=256, alpha=0.5, DEBUG=False):
         '''
         model: model for training.
         dataset: nyu, kitti
@@ -30,7 +30,7 @@ class Trainer:
         self._batch_size = batch_size
 
         self._optimizer = SGD(nesterov=True, momentum=0.9, learning_rate = self.LR_Scheduler())
-        self.loss = Loss_total()
+        self.loss = Loss_total(alpha=alpha)
         
         #Tensorboard
         self.time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
