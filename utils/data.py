@@ -3,7 +3,7 @@ import tensorflow as tf
 
 class data_load():
             
-    def __init__(self, csv_file='data/nyu2_train.csv', batch_size=32,size= 256, DEBUG=False):
+    def __init__(self, csv_file='data/noisy_train_ds.csv', batch_size=32,size= 256, DEBUG=False):
        
         self.shape_depth = (size, size, 1)
         self.read_nyu_data(csv_file, DEBUG=DEBUG)
@@ -17,26 +17,30 @@ class data_load():
         # Test on a smaller dataset
         if DEBUG: nyu2_train = nyu2_train[:100]    
 
+        self.images = [i[0] for i in nyu2_train]
         # A vector of depth filenames.
         self.labels = [i[1] for i in nyu2_train]
 
         # Length of dataset
         self.length = len(self.labels)
         print(f" data length:{self.length}")
-    def _parse_function(self, x_train): 
+    def _parse_function(self, noisy, pure): 
         # Read images from disk
-        depth_resized = tf.image.resize(tf.image.decode_jpeg(tf.io.read_file(x_train)), [self.shape_depth[0], self.shape_depth[1]])
+        noisy_img = tf.image.resize(tf.image.decode_jpeg(tf.io.read_file(noisy)), [self.shape_depth[0], self.shape_depth[1]])
+        pure_img = tf.image.resize(tf.image.decode_jpeg(tf.io.read_file(pure)), [self.shape_depth[0], self.shape_depth[1]])
 
         # Format
-        depth = tf.image.convert_image_dtype(depth_resized / 255.0, dtype=tf.float32)
+        pure_img = tf.image.convert_image_dtype(pure_img / 255.0, dtype=tf.float32)
         
         # Normalize the depth values (in m)
-        depth = tf.clip_by_value(depth * 10, 0, 10)
+        pure_img = tf.clip_by_value(pure_img * 10, 0, 10)
 
-        return depth, depth
+        noisy_img = noisy_img * (tf.math.reduce_max(pure_img)/ tf.math.reduce_max(noisy_img))
+
+        return noisy_img, pure_img
 
     def get_batched_dataset(self):
-        self.dataset = tf.data.Dataset.from_tensor_slices((self.labels))
+        self.dataset = tf.data.Dataset.from_tensor_slices((self.images, self.labels))
         self.dataset = self.dataset.shuffle(buffer_size=len(self.labels), reshuffle_each_iteration=True)
         self.dataset = self.dataset.repeat()
         self.dataset = self.dataset.map(map_func=self._parse_function, num_parallel_calls=tf.data.AUTOTUNE)
