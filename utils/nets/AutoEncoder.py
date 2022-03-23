@@ -18,7 +18,7 @@ class AutoEncoder(tf.keras.Model):
 
         return y 
 
-    def model(self, input_shape=(256,256,3)):
+    def model(self, input_shape=(256,256,1)):
         '''
         This method makes the command "model.summary()" work.
         input_shape: (H,W,C), do not specify batch B

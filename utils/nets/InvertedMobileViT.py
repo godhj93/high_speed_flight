@@ -8,11 +8,11 @@ class InvertedMobileViT(tf.keras.Model):
         super(InvertedMobileViT, self).__init__()
 
         self.flatten = layers.Flatten() # 32
-        self.linear1 = layers.Dense(640, activation=tf.nn.swish) # 640
+        self.linear1 = layers.Dense(640, activation=tf.nn.relu) # 640
         self.reshape = layers.Reshape([1,1,-1]) # 1*1*640
         self.upsample1 = layers.UpSampling2D(size=(8,8)) # 8*8*640
         
-        self.point_conv1 = layers.Conv2D(filters=160, kernel_size=1, strides=1, padding='same', activation=tf.nn.swish) # 8*8*160
+        self.point_conv1 = layers.Conv2D(filters=160, kernel_size=1, strides=1, padding='same', activation=tf.nn.relu) # 8*8*160
         self.MViT_block_3 = MViT_block(dim=240, n=3, L=3) # 8*8*160
         self.MV5_1 = InvertedResidual(strides=1, filters=160) # 8*8*160
         self.upsample2 = layers.UpSampling2D(size=(2,2)) # 16*16*128
@@ -105,8 +105,8 @@ class ForwardResidual(tf.keras.layers.Layer):
         
         self.filters = filters
 
-        self.depth_conv2d = layers.DepthwiseConv2D(kernel_size=3, strides=2, padding='same', use_bias=False, activation=tf.nn.swish)
-        self.point_conv2d = layers.DepthwiseConv2D(filters=1, kernel_size=3, strides=2, padding='same', use_bias=False, activation=tf.nn.swish)
+        self.depth_conv2d = layers.DepthwiseConv2D(kernel_size=3, strides=2, padding='same', use_bias=False, activation=tf.nn.relu)
+        self.point_conv2d = layers.DepthwiseConv2D(filters=1, kernel_size=3, strides=2, padding='same', use_bias=False, activation=tf.nn.relu)
         
         self.bn1 = layers.BatchNormalization()
         self.bn2 = layers.BatchNormalization()
@@ -117,7 +117,7 @@ class ForwardResidual(tf.keras.layers.Layer):
     def build(self, input_shape):
 
         B,H,W,C = input_shape
-        self.transpose_conv2d = layers.Conv2DTranspose(filters=C, kernel_size=3, strides=2, padding='same', use_bias=False, activation=tf.nn.swish)
+        self.transpose_conv2d = layers.Conv2DTranspose(filters=C, kernel_size=3, strides=2, padding='same', use_bias=False, activation=tf.nn.relu)
 
     def get_config(self):
         config = super().get_config()
