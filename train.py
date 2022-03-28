@@ -15,11 +15,13 @@ parser.add_argument("--data", default='NYUv2')
 parser.add_argument("--name", default='AutoEncoder')
 parser.add_argument("--alpha", type=float, default=0.5)
 parser.add_argument("--states", type=int, default=64)
+parser.add_argument("--size", type=int, default=256)
+parser.add_argument("--arch", default='S')
 args = parser.parse_args()
 
 def main():
     
-    autoencoder = AutoEncoder(classes=args.states).model(input_shape=(256,256,1))
+    autoencoder = AutoEncoder(classes=args.states,arch=args.arch, size=args.size).model(input_shape=(args.size,args.size,1))
     print(autoencoder.summary())
     print(f"Epochs: {args.ep}\nBatch Size: {args.bs}\nAlpha: {float(args.alpha)}\nStates: {int(args.states)}")
     trainer = Trainer(autoencoder, epochs=args.ep, batch_size=args.bs, size= 256, alpha= args.alpha, DEBUG=False)

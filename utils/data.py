@@ -23,7 +23,7 @@ class data_load():
 
         # Length of dataset
         self.length = len(self.labels)
-        print(f" data length:{self.length}")
+        print(f"Data length:{self.length}")
     def _parse_function(self, noisy, pure): 
         # Read images from disk
         noisy_img = tf.image.resize(tf.image.decode_jpeg(tf.io.read_file(noisy)), [self.shape_depth[0], self.shape_depth[1]])
