@@ -5,7 +5,9 @@ from tensorflow.python.compiler.tensorrt import trt_convert as trt
 import argparse
 from tqdm import tqdm
 from utils.data import data_load
-
+gpus = tf.config.experimental.list_physical_devices("GPU")
+for gpu in gpus:
+    tf.config.experimental.set_memory_growth(gpu,True)
 
 parser = argparse.ArgumentParser(description='Convert tensorflow model to TensorRT model')
 
