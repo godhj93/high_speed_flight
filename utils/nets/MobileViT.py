@@ -38,7 +38,7 @@ class MobileViT(tf.keras.Model):
 
         self.MV5_1 = InvertedResidual(strides=2, filters=arch[9])
         self.MViT_block_3 = MViT_block(dim=arch[10], n=3, L=3)
-        self.point_conv1 = layers.Conv2D(filters=arch[11], kernel_size=1, strides=1, activation=tf.nn.swish)
+        self.point_conv1 = layers.Conv2D(filters=arch[11], kernel_size=1, strides=1, activation=tf.nn.relu)
         
         self.global_pool = layers.GlobalAveragePooling2D()
         self.logits = layers.Dense(classes, activation = tf.nn.softmax)
@@ -106,7 +106,7 @@ class InvertedResidual(tf.keras.layers.Layer):
         self.add = layers.Add()
         
         self.conv1 = layers.DepthwiseConv2D(kernel_size=3, strides=self.strides, padding='same', use_bias=False)
-        self.swish = tf.nn.swish
+        self.relu = tf.nn.relu
 
         self.point_conv1 = layers.Conv2D(filters=C, kernel_size=1, strides=1)
         self.point_conv2 = layers.Conv2D(filters=self.filters, kernel_size=1, strides=1)
@@ -122,9 +122,9 @@ class InvertedResidual(tf.keras.layers.Layer):
 
     def call(self, x):
 
-        y = self.swish( self.bn1( self.point_conv1(x)))
+        y = self.relu( self.bn1( self.point_conv1(x)))
 
-        y = self.swish( self.bn2( self.conv1(y)))
+        y = self.relu( self.bn2( self.conv1(y)))
         
         y = self.bn3 ( self.point_conv2(y))
         
@@ -158,8 +158,8 @@ class MViT_block(tf.keras.layers.Layer):
         P = self.w * self.h
         N = H*W//P
         
-        self.local_rep_conv1 = layers.Conv2D(filters=self.p_dim, kernel_size=3, padding='same', use_bias=False, activation=tf.nn.swish)
-        self.local_rep_conv2 = layers.Conv2D(filters=self.p_dim, kernel_size=1, use_bias=False, activation=tf.nn.swish)
+        self.local_rep_conv1 = layers.Conv2D(filters=self.p_dim, kernel_size=3, padding='same', use_bias=False, activation=tf.nn.relu)
+        self.local_rep_conv2 = layers.Conv2D(filters=self.p_dim, kernel_size=1, use_bias=False, activation=tf.nn.relu)
         #output : H W self.p_dim
 
         self.reshape = layers.Reshape((-1,P,self.p_dim))
@@ -175,8 +175,8 @@ class MViT_block(tf.keras.layers.Layer):
         
         self.reshape2 = layers.Reshape((-1,W,self.p_dim))
 
-        self.point_conv = layers.Conv2D(filters= C, kernel_size= 1, strides= 1, use_bias= False, activation= tf.nn.swish)
-        self.conv = layers.Conv2D(filters= C, kernel_size= self.n, strides= 1, use_bias= False, padding='same', activation= tf.nn.swish)
+        self.point_conv = layers.Conv2D(filters= C, kernel_size= 1, strides= 1, use_bias= False, activation= tf.nn.relu)
+        self.conv = layers.Conv2D(filters= C, kernel_size= self.n, strides= 1, use_bias= False, padding='same', activation= tf.nn.relu)
 
     def get_config(self):
         config = super().get_config()
@@ -231,7 +231,7 @@ class T_encoder(tf.keras.layers.Layer):
         self.add = layers.Add()
 
         self.MHA = layers.MultiHeadAttention(num_heads= self.num_heads, key_dim= self.p_dim, value_dim=None, use_bias=False)
-        self.MLP = layers.Dense(C, activation=tf.nn.swish, use_bias=False)
+        self.MLP = layers.Dense(C, activation=tf.nn.relu, use_bias=False)
 
     def get_config(self):
         config = super().get_config()
