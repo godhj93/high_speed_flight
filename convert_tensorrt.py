@@ -50,6 +50,6 @@ else:
 converter.build(input_fn=my_input_fn)
 print('Done!')
 
-save_path = './' + args.load_model + '_rt'
+save_path = './' + args.load_model + 'tensor_rt'
 converter.save(save_path)
 print('saved tensorRT model to {}'.format(save_path))
