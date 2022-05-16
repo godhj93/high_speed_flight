@@ -41,7 +41,7 @@ class MobileViT(tf.keras.Model):
         self.point_conv1 = layers.Conv2D(filters=arch[11], kernel_size=1, strides=1, activation=tf.nn.relu)
         
         self.global_pool = layers.GlobalAveragePooling2D()
-        self.logits = layers.Dense(classes, activation = tf.nn.softmax)
+        self.logits = layers.Dense(classes, activation = tf.nn.relu)
 
     def call(self, x):
        
