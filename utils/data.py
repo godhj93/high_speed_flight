@@ -29,11 +29,12 @@ class data_load():
         noisy_img = tf.image.resize(tf.image.decode_jpeg(tf.io.read_file(noisy)), [self.shape_depth[0], self.shape_depth[1]])
         pure_img = tf.image.resize(tf.image.decode_jpeg(tf.io.read_file(pure)), [self.shape_depth[0], self.shape_depth[1]])
 
-        # Format
+        # Normalization
+        noisy_img = tf.image.convert_image_dtype(noisy_img / 255.0, dtype=tf.float32)
         pure_img = tf.image.convert_image_dtype(pure_img / 255.0, dtype=tf.float32)
         
         # Normalize the depth values (in m)
-        pure_img = tf.clip_by_value(pure_img * 10, 0, 10)
+        # pure_img = tf.clip_by_value(pure_img * 10, 0, 10)
 
         #noisy_img = noisy_img * (tf.math.reduce_max(pure_img)/ tf.math.reduce_max(noisy_img))
 

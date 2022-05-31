@@ -10,7 +10,7 @@ class InvertedMobileViT(tf.keras.Model):
         self.flatten = layers.Flatten() # 32
         self.linear1 = layers.Dense(640, activation=tf.nn.relu) # 640
         self.reshape = layers.Reshape([1,1,-1]) # 1*1*640
-        self.upsample1 = layers.UpSampling2D(size=(8,8)) # 8*8*640
+        self.upsample1 = layers.UpSampling2D(size=(7,7)) # 8*8*640
         
         self.point_conv1 = layers.Conv2D(filters=160, kernel_size=1, strides=1, padding='same', activation=tf.nn.relu) # 8*8*160
         self.MViT_block_3 = MViT_block(dim=240, n=3, L=3) # 8*8*160
@@ -31,8 +31,8 @@ class InvertedMobileViT(tf.keras.Model):
         self.upsample5 = layers.UpSampling2D(size=(2,2)) # 128*128*32
 
         self.MV1_1 = InvertedResidual(strides= 1, filters= 32) # 128*128*32
-        self.conv3x3 = layers.Conv2D(kernel_size= 3, filters= 1, strides= 1, padding= 'same') # 128*128*16
-        self.upsample6 = layers.UpSampling2D(size=(2,2)) # 256*256*3
+        self.conv3x3 = layers.Conv2D(kernel_size= 3, filters= 1, strides= 1, padding= 'same') # 128*128*1
+        self.upsample6 = layers.UpSampling2D(size=(2,2)) # 256*256*1 #When commented 128*128*1
   
 
     def call(self, x):
@@ -61,7 +61,7 @@ class InvertedMobileViT(tf.keras.Model):
 
         y = self.MV1_1(y)
         y = self.conv3x3(y)
-        y = self.upsample6(y)
+        y = self.upsample6(y) #When commented output shape will be 128*128*1.
 
         return y
 
@@ -72,7 +72,9 @@ class InvertedMobileViT(tf.keras.Model):
         input_shape: (H,W,C), do not specify batch B
         '''
         x = layers.Input(shape=input_shape)
-        return tf.keras.Model(inputs=[x], outputs=self.call(x))
+        model = tf.keras.Model(inputs=[x], outputs=self.call(x))
+        print(model.summary())
+        return model
 
 class Upsampling(tf.keras.layers.Layer):
     

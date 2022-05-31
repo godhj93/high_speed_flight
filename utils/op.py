@@ -2,7 +2,7 @@ import tensorflow as tf
 from tqdm import tqdm
 from utils.data import data_load
 from utils.loss import Loss_total
-from tensorflow.keras.optimizers import SGD
+from tensorflow.keras.optimizers import SGD, Adam
 import copy
 from datetime import datetime
 
@@ -29,7 +29,7 @@ class Trainer:
         self.train_data_length = self.train_ds.length
         self._batch_size = batch_size
 
-        self._optimizer = SGD(nesterov=True, momentum=0.9, learning_rate = self.LR_Scheduler())
+        self._optimizer = Adam(learning_rate = self.LR_Scheduler())
         self.loss = Loss_total(alpha=alpha)
         
         #Tensorboard
@@ -69,7 +69,8 @@ class Trainer:
             train_bar = self.progress_bar('train')
             for step,(x,y) in train_bar:
                 if step == self.step:
-                    break
+                    break   
+                
                 self.train_step(x,y)
                 train_bar.set_description(f"Loss: {self.train_loss.result().numpy():.4f}")
             with self.train_summary_writer.as_default():

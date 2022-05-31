@@ -41,7 +41,7 @@ class MobileViT(tf.keras.Model):
         self.point_conv1 = layers.Conv2D(filters=arch[11], kernel_size=1, strides=1, activation=tf.nn.relu)
         
         self.global_pool = layers.GlobalAveragePooling2D()
-        self.logits = layers.Dense(classes, activation = tf.nn.relu)
+        self.logits = layers.Dense(classes, activation = tf.nn.softmax)
 
     def call(self, x):
        
@@ -79,14 +79,16 @@ class MobileViT(tf.keras.Model):
         input_shape: (H,W,C), do not specify batch B
         '''
         x = layers.Input(shape=input_shape)
-        return tf.keras.Model(inputs=[x], outputs=self.call(x))
+        model = tf.keras.Model(inputs=[x], outputs=self.call(x))
+        print(model.summary())
+        return model
 
 class InvertedResidual(tf.keras.layers.Layer):
     '''
     Inverted Residual Block
     https://arxiv.org/pdf/1801.04381.pdf
     Author: H.J. Shin
-    Date: 2022.02.12
+    Date: 2022.05.28
     '''
     def __init__(self, strides, filters):
         super(InvertedResidual, self).__init__()
@@ -105,20 +107,11 @@ class InvertedResidual(tf.keras.layers.Layer):
         self.bn3 = layers.BatchNormalization()
         self.add = layers.Add()
         
-        self.conv1 = layers.DepthwiseConv2D(kernel_size=3, strides=self.strides, padding='same', use_bias=False)
+        self.conv1 = layers.DepthwiseConv2D(kernel_size=3, strides=self.strides, padding='same', use_bias=True, kernel_regularizer=tf.keras.regularizers.l2(0.001))
         self.relu = tf.nn.relu
 
-        self.point_conv1 = layers.Conv2D(filters=C, kernel_size=1, strides=1)
-        self.point_conv2 = layers.Conv2D(filters=self.filters, kernel_size=1, strides=1)
-
-    def get_config(self):
-        config = super().get_config()
-        config.update({
-             
-            "strides": self.strides,
-            "filters": self.filters,
-        })
-        return config
+        self.point_conv1 = layers.Conv2D(filters=C, kernel_size=1, strides=1, use_bias=True, kernel_regularizer=tf.keras.regularizers.l2(0.001))
+        self.point_conv2 = layers.Conv2D(filters=self.filters, kernel_size=1, strides=1, use_bias=True, kernel_regularizer=tf.keras.regularizers.l2(0.001))
 
     def call(self, x):
 
@@ -137,7 +130,7 @@ class MViT_block(tf.keras.layers.Layer):
     MobileViT Block
     https://arxiv.org/abs/2110.02178.pdf
     Author: H.J. Shin
-    Date: 2022.02.12
+    Date: 2022.05.26
     '''
     def __init__(self, dim, n=3, L=1):
         '''
@@ -158,10 +151,11 @@ class MViT_block(tf.keras.layers.Layer):
         P = self.w * self.h
         N = H*W//P
         
-        self.local_rep_conv1 = layers.Conv2D(filters=self.p_dim, kernel_size=3, padding='same', use_bias=False, activation=tf.nn.relu)
-        self.local_rep_conv2 = layers.Conv2D(filters=self.p_dim, kernel_size=1, use_bias=False, activation=tf.nn.relu)
+        self.local_rep_conv1 = layers.Conv2D(filters=self.p_dim, kernel_size=3, padding='same', use_bias=True, kernel_regularizer=tf.keras.regularizers.l2(0.001), activation=tf.nn.relu)
+        self.local_rep_conv2 = layers.Conv2D(filters=self.p_dim, kernel_size=1, use_bias=True, kernel_regularizer=tf.keras.regularizers.l2(0.001), activation=tf.nn.relu)
         #output : H W self.p_dim
 
+        
         self.reshape = layers.Reshape((-1,P,self.p_dim))
 
         # self.flatten = layers.Flatten()
@@ -175,41 +169,62 @@ class MViT_block(tf.keras.layers.Layer):
         
         self.reshape2 = layers.Reshape((-1,W,self.p_dim))
 
-        self.point_conv = layers.Conv2D(filters= C, kernel_size= 1, strides= 1, use_bias= False, activation= tf.nn.relu)
-        self.conv = layers.Conv2D(filters= C, kernel_size= self.n, strides= 1, use_bias= False, padding='same', activation= tf.nn.relu)
-
-    def get_config(self):
-        config = super().get_config()
-        config.update({         
-            "dim": self.p_dim,
-            "L": self.L,
-            "n": self.n,
-        })
-        return config
-
+        self.point_conv = layers.Conv2D(filters= C, kernel_size= 1, strides= 1, use_bias=True, kernel_regularizer=tf.keras.regularizers.l2(0.001), activation= tf.nn.relu)
+        self.conv = layers.Conv2D(filters= C, kernel_size= self.n, strides= 1, use_bias=True, kernel_regularizer=tf.keras.regularizers.l2(0.001), padding='same', activation= tf.nn.relu)
+    
     def call(self, x):
         
         #Local representations
         y = self.local_rep_conv1(x)
-        y = self.local_rep_conv2(y) #H W d
+        conv_feature = self.local_rep_conv2(y) 
+        _, _, _, d = conv_feature.shape
+        
         #####
         # Transformers as Convolutions(global representations)
         #   Unfold
-        y = self.reshape(y)
+        y = self.extract_patches(conv_feature)
+        extracted_patch_shape = y.shape
+        # patches = tf.image.extract_patches(y, sizes=[1, self.h, self.w, 1], strides=[1, self.h, self.w, 1], padding='VALID', rates=[1,1,1,1])
+        y = tf.reshape(y, [-1, self.h, self.w, d])
+        
         #   Transformer Encoder
         for i in range(self.L): 
             y = self.encoders[i](y)
         #   Fold
-        y = self.reshape2(y)
-        #####
+        y = tf.reshape(y, (-1, extracted_patch_shape[1], extracted_patch_shape[2], extracted_patch_shape[3]))
+        y = self.extract_patches_inverse(conv_feature,y)
+       
 
         #Fusions
         y = self.point_conv(y)
+        
         y = self.concat([y,x])
         
         return self.conv(y)
         
-
+    
+    '''
+    Ref: https://stackoverflow.com/questions/44047753/reconstructing-an-image-after-using-extract-image-patches
+    '''
+    @tf.function
+    def extract_patches(self,x):
+        return tf.image.extract_patches(
+            x,
+            (1, self.h, self.w, 1),
+            (1, self.h, self.w, 1),
+            (1, 1, 1, 1),
+            padding="VALID"
+        )
+    @tf.function
+    def extract_patches_inverse(self,x, y):
+        _x = tf.zeros_like(x)
+        _y = self.extract_patches(_x)
+        grad = tf.gradients(_y, _x)[0]
+        # Divide by grad, to "average" together the overlapping patches
+        # otherwise they would simply sum up
+        return tf.gradients(_y, _x, grad_ys=y)[0] / grad
+    
+    
 class T_encoder(tf.keras.layers.Layer):
     '''
     Transformer Encoder
@@ -230,16 +245,9 @@ class T_encoder(tf.keras.layers.Layer):
         
         self.add = layers.Add()
 
-        self.MHA = layers.MultiHeadAttention(num_heads= self.num_heads, key_dim= self.p_dim, value_dim=None, use_bias=False)
-        self.MLP = layers.Dense(C, activation=tf.nn.relu, use_bias=False)
+        self.MHA = layers.MultiHeadAttention(num_heads= self.num_heads, key_dim= self.p_dim, value_dim=None, use_bias=True, kernel_regularizer=tf.keras.regularizers.l2(0.001))
+        self.MLP = layers.Dense(C, activation=tf.nn.relu, use_bias=True, kernel_regularizer=tf.keras.regularizers.l2(0.001))
 
-    def get_config(self):
-        config = super().get_config()
-        config.update({
-            "proejct_dim": self.p_dim,
-            "num_heads": self.num_heads
-        })
-        return config
     def call(self, x):
         
         y = self.norm1(x)
@@ -253,4 +261,3 @@ class T_encoder(tf.keras.layers.Layer):
         y = self.MLP(y)
 
         return self.add([residual, y])
-
