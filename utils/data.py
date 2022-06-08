@@ -5,12 +5,17 @@ from torch.utils.data import Dataset, DataLoader
 from torchvision.transforms import Resize, Compose
 class depth_image_dataset(Dataset):
 
-    def __init__(self, annotations_file, transform):
+    def __init__(self, annotations_file, transform, debug):
 
         self.train_ds_list = pd.read_csv(annotations_file,header=None)
         self.train_ds_list.columns = ['x','y']
         
+        if debug:
+            print("  Debug Mode... Number of data is 10.")
+            self.train_ds_list = self.train_ds_list[:10]
+
         self.transform = transform
+        
         
     def __len__(self):
         return len(self.train_ds_list)
@@ -32,14 +37,15 @@ class depth_image_dataset(Dataset):
 
         return train_x, train_y
     
-def data_generator(batch_size=32, img_size=256):
+def data_generator(debug, batch_size=32, img_size=256):
 
     dataset =  depth_image_dataset(
             annotations_file='./data/noisy_train_ds.csv',
             transform=Compose(
                 [
                 Resize((img_size,img_size)),
-                ])
+                ]),
+            debug=debug
             )
     
     train_ds = DataLoader(

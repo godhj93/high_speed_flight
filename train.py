@@ -7,8 +7,9 @@ parser = argparse.ArgumentParser('Train Depth Extractor')
 parser.add_argument('--ep', default=10, type=int, help='epochs')
 parser.add_argument('--bs', default=32, type=int, help='batch size')
 parser.add_argument('--size', default=224, type=int, help='input image size')
-parser.add_argument('--name', help='file name of the network')
+parser.add_argument('--name', default='AutoEncoder', help='file name of the network')
 parser.add_argument('--states', default=64, type=int, help='encoder output dimension')
+parser.add_argument('--debug', default=False)
 args = parser.parse_args()
 
 def main():
@@ -18,7 +19,7 @@ def main():
     print(parameters)
 
     autoencoder = Autoencoder()
-    trainer = Trainer(model = autoencoder, epochs=args.ep, batch_size=args.bs, img_size=args.size, name=args.name)
+    trainer = Trainer(model = autoencoder, epochs=args.ep, batch_size=args.bs, img_size=args.size, name=args.name, debug=args.debug)
     trainer.train()
 
     
