@@ -78,15 +78,15 @@ class InvertedRedisual(nn.Module):
         self.in_channels = in_channels
         self.out_channels = out_channels
         self.strides=strides
-
-        self.pw_conv1 = nn.Conv2d(in_channels=self.in_channels, out_channels=self.in_channels*6, padding='same', stride=1, kernel_size=1, bias=False)
+        expand_factor = 4
+        self.pw_conv1 = nn.Conv2d(in_channels=self.in_channels, out_channels=self.in_channels*expand_factor, padding='same', stride=1, kernel_size=1, bias=False)
 
         if self.strides == 2:
-            self.dw_conv1 = nn.Conv2d(in_channels=self.in_channels*6, out_channels=self.in_channels*6, stride=self.strides, kernel_size=3, groups=self.in_channels, bias=False)
+            self.dw_conv1 = nn.Conv2d(in_channels=self.in_channels*expand_factor, out_channels=self.in_channels*expand_factor, stride=self.strides, kernel_size=3, groups=self.in_channels*expand_factor, bias=False)
         else:
-            self.dw_conv1 = nn.Conv2d(in_channels=self.in_channels*6, out_channels=self.in_channels*6, stride=self.strides, padding='same', kernel_size=3, groups=self.in_channels, bias=False)
+            self.dw_conv1 = nn.Conv2d(in_channels=self.in_channels*expand_factor, out_channels=self.in_channels*expand_factor, stride=self.strides, padding='same', kernel_size=3, groups=self.in_channels*expand_factor, bias=False)
 
-        self.pw_conv2 = nn.Conv2d(in_channels=self.in_channels*6, out_channels=self.out_channels, padding='same', stride=1, kernel_size=1, bias=False)
+        self.pw_conv2 = nn.Conv2d(in_channels=self.in_channels*expand_factor, out_channels=self.out_channels, padding='same', stride=1, kernel_size=1, bias=False)
 
         self.relu6 = nn.ReLU6()   
         self.swish = Swish()     
