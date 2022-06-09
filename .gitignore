@@ -6,3 +6,4 @@ models/
 /data
 /logs
 /make_noisy_depth
+.DS_Store
