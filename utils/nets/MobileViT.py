@@ -1,9 +1,6 @@
 import torch
 from torch import nn
 
-
-
-
 class MobileViT(nn.Module):
     
     def __init__(self,arch, input_shape, classes=64):
@@ -46,7 +43,7 @@ class MobileViT(nn.Module):
         y = self.global_pool(y)
         y = y.squeeze()
         logits = self.relu6(self.logits(y))
-        
+
         return logits
 
 class InvertedRedisual(nn.Module):
@@ -87,7 +84,85 @@ class InvertedRedisual(nn.Module):
 
 
 
+class MobileViT_Block(nn.Module):
+
+    def __init__(self, in_channels, dimension ):
+        super(MobileViT_Block, self).__init__()
+
+        self.in_channels = in_channels
+        self.dimension = dimension
+
+        h,w = 2,2
+
+        self.P = h*w
+        self.conv1_local_rep = nn.Conv2d(in_channels= self.in_channels, out_channels= self.in_channels, kernel_size=3, stride=1, padding='same')
+        self.conv2_local_rep = nn.Conv2d(in_channels= self.in_channels, out_channels= self.dimension, kernel_size=1, stride=1, padding='same')
+
+        #Unfold
+        #Extract Patches
+        self.extract_patches = torch.nn.Unfold(kernel_size=2, stride=2)
+            #Flatten Patches
+
+        #Transformer Encoder
+
+        #Fusion
+        self.conv1_fusion = nn.Conv2d(in_channels=self.dimension, out_channels=self.in_channels, kernel_size=1,stride=1, padding='same')
+        self.conv2_fusion = nn.Conv2d(in_channels=self.in_channels*2, out_channels=self.in_channels, kernel_size=3,stride=1, padding='same')
+
+        self.swish = Swish()
         
-# MobileViT Block
+    def forward(self, x):
+
+        N,C,H,W = x.shape
+        print(x.shape)
+        self.fold = torch.nn.Fold(output_size=(H,W), kernel_size=2, stride=2)
+        
+        #Local reprentations.
+        y = self.conv1_local_rep(x)        
+        y = self.conv2_local_rep(y)
+        print(y.shape) 
+        #Transformers as Convolutions
+            #Unfold
+        y = self.extract_patches(y)
+        c,h,w = y.shape
+        print(y.shape)        
+        y = y.reshape(self.dimension, -1, self.P)
+        print(y.shape)        
+            #Transformer encoder
+        
+            #Fold
+        y = y.reshape(c,h,w)
+        print(y.shape)
+        y = self.fold(y)
+        print(y.shape)
+        y = self.conv1_fusion(y)
+        print(y.shape)
+        y = torch.cat([x,y],axis=1)
+        print(y.shape)
+        y = self.conv2_fusion(y)
+        print(y.shape)
+        return y
+
+    
+class Swish(nn.Module):
+
+    def __init__(self):
+        super().__init__()
+        self.sigmoid = nn.Sigmoid()
+
+    def forward(self, x):
+        return x*self.sigmoid(x)
+
+
+class Swish(nn.Module):
+
+    def __init__(self):
+        super().__init__()
+        self.sigmoid = nn.Sigmoid()
+
+    def forward(self, x):
+        return x*self.sigmoid(x)
+
+
 
 # Transformer Encoder
