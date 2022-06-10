@@ -5,13 +5,13 @@ from torch.nn import functional as F
 
 class MobileViT(nn.Module):
     
-    def __init__(self,arch, input_shape, classes=1000):
+    def __init__(self, input_shape, classes=64):
         super(MobileViT, self).__init__()
 
-        self.arch = arch
-        self.input_shape = input_shape
-        print(self.input_shape)
-        self.conv1 = nn.Conv2d(in_channels=input_shape[0], out_channels=16, kernel_size=3, stride=2, bias=False)
+        
+        input_channel, _, _ = input_shape
+        
+        self.conv1 = nn.Conv2d(in_channels=input_channel, out_channels=16, kernel_size=3, stride=2, bias=False)
         self.zeropad = nn.ZeroPad2d(padding=(1,1,1,1))
         self.MV1 = InvertedRedisual(in_channels=16, out_channels=32, strides=1)
 
