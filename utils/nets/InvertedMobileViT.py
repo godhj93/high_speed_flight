@@ -59,7 +59,7 @@ class InvertedMobileViT(nn.Module):
         N, _ = x.shape
         y = self.linear(x) #640
         y = y.reshape(N,-1,1,1) # 1 640 1 1
-        y = F.upsample(y, size=(8,8))  #1 640 8 8
+        y = F.upsample(y, size=(7,7))  #1 640 8 8, // 7,7 -> 224,224
         y = self.conv1(y)  #1 160 8 8
         y = self.ViT1(y) #1 160 8 8
         y = self.MV1(y) #1 128 8 8

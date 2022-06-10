@@ -35,7 +35,7 @@ class MobileViT(nn.Module):
         self.swish = Swish()
 
     def forward(self, x):
-
+        print(x.shape)
         y = self.swish((self.conv1(self.zeropad(x))))
         y = self.MV1(y)
         
@@ -52,8 +52,9 @@ class MobileViT(nn.Module):
         y = self.ViT3(y)
 
         y = self.swish(self.conv2(y))
+        print(y.shape)
         y = self.global_pool(y)
-        
+        print(y.shape)
         y = y.squeeze()
         
         logits = self.swish(self.logits(y))
