@@ -29,7 +29,7 @@ class MobileViT(nn.Module):
 
         self.conv2 = nn.Conv2d(in_channels=160, out_channels=640, kernel_size=1, stride=1, bias=False)
 
-        self.global_pool = nn.AvgPool2d(kernel_size=8)
+        self.global_pool = nn.AvgPool2d(kernel_size=7)
         self.logits = nn.Linear(in_features=640, out_features=classes, bias=False)
         self.relu6 = nn.ReLU6()
         self.swish = Swish()
@@ -37,37 +37,27 @@ class MobileViT(nn.Module):
     def forward(self, x):
 
         y = self.swish((self.conv1(self.zeropad(x))))
-        print(y.shape)
         y = self.MV1(y)
-        print(y.shape)
+        
         y = self.MV2(y)
-        print(y.shape)
         y = self.MV3(y)
-        print(y.shape)
+
         y = self.MV4(y)
-        print(y.shape)
         y = self.ViT1(y)
-        print(y.shape)
         
         y = self.MV5(y)
-        print(y.shape)
         y = self.ViT2(y)
-        print(y.shape)
 
         y = self.MV6(y)
-        print(y.shape)
         y = self.ViT3(y)
-        print(y.shape)
 
         y = self.swish(self.conv2(y))
-        print(y.shape)
         y = self.global_pool(y)
-        print(y.shape)
+        
         y = y.squeeze()
-        print(y.shape)
+        
         logits = self.swish(self.logits(y))
-        print(logits.shape)
-
+        
         return logits
 
 class InvertedRedisual(nn.Module):
@@ -122,7 +112,7 @@ class MobileViT_Block(nn.Module):
         #Unfold
         #Extract Patches
         self.extract_patches = torch.nn.Unfold(kernel_size=2, stride=2)
-            #Flatten Patches
+            
 
         #Transformer Encoder
         self.encoder = Transformer_Encoder(input_dim=dimension, num_of_encoder=num_of_encoder)
@@ -135,29 +125,26 @@ class MobileViT_Block(nn.Module):
     def forward(self, x):
         
         N,C,H,W = x.shape
-        
-        self.fold = torch.nn.Fold(output_size=(H,W), kernel_size=2, stride=2)
+        self.fold = torch.nn.Fold(output_size=(H,W), kernel_size=(2,2), stride=(2,2))
         
         #Local reprentations.
         y = self.swish(self.conv1_local_rep(x))
         y = self.swish(self.conv2_local_rep(y))
+
         #Transformers as Convolutions
             #Unfold
         y = self.extract_patches(y)
         c,h,w = y.shape
         y = y.reshape(self.dimension, self.P, -1)
         y = y.permute(2,1,0)
+
             #Transformer encoder
         y = self.encoder(y)
             #Fold
         y = y.reshape(c,h,w)
-        
         y = self.fold(y)
-        
         y = self.swish(self.conv1_fusion(y))
-        
         y = torch.cat([x,y],axis=1)
-        
         y = self.swish(self.conv2_fusion(y))
         
         return y
