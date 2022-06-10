@@ -48,7 +48,7 @@ class InvertedMobileViT(nn.Module):
         #upsampling scale -> 2
         #self.zeropad = nn.ZeroPad2d(padding=(1,1,1,1))
         self.zeropad = nn.ZeroPad2d(padding=(1,1,1,1))
-        self.conv2 = nn.Conv2d(in_channels=16, out_channels=3, kernel_size=3, stride=1, padding='same', bias=False)
+        self.conv2 = nn.Conv2d(in_channels=16, out_channels=1, kernel_size=3, stride=1, padding='same', bias=False)
 
         self.relu6 = nn.ReLU6()
         self.swish = Swish()
@@ -85,4 +85,4 @@ class InvertedMobileViT(nn.Module):
         y = F.upsample(y, scale_factor=(4,4)) #96 32 32
         y = self.conv2(y)
 
-        return y.squeeze()
+        return y.squeeze(axis=0)
