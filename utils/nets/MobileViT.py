@@ -52,9 +52,9 @@ class MobileViT(nn.Module):
         y = self.ViT3(y)
 
         y = self.swish(self.conv2(y))
-        print(y.shape)
+        
         y = self.global_pool(y)
-        print(y.shape)
+        
         y = y.squeeze()
         
         logits = self.swish(self.logits(y))

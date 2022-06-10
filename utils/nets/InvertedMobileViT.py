@@ -57,10 +57,10 @@ class InvertedMobileViT(nn.Module):
     def forward(self, x):
 
         N, _ = x.shape
-        y = self.linear(x) #640
+        y = self.swish(self.linear(x)) #640
         y = y.reshape(N,-1,1,1) # 1 640 1 1
         y = F.upsample(y, size=(7,7))  #1 640 8 8, // 7,7 -> 224,224
-        y = self.conv1(y)  #1 160 8 8
+        y = self.swish(self.conv1(y))  #1 160 8 8
         y = self.ViT1(y) #1 160 8 8
         y = self.MV1(y) #1 128 8 8
         
@@ -83,6 +83,6 @@ class InvertedMobileViT(nn.Module):
         
         #16 128 128
         y = F.upsample(y, scale_factor=(4,4)) #96 32 32
-        y = self.conv2(y)
+        y = self.swish(self.conv2(y))
 
         return y.squeeze(axis=0)
