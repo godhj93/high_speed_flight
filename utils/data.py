@@ -37,7 +37,7 @@ class depth_image_dataset(Dataset):
 
         return train_x, train_y
     
-def data_generator(debug, batch_size=32, img_size=256):
+def data_generator(debug, batch_size=32, img_size=224):
 
     dataset =  depth_image_dataset(
             annotations_file='./data/noisy_train_ds.csv',

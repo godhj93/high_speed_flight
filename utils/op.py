@@ -32,7 +32,9 @@ class Trainer:
         self.PATH = datetime.now().strftime('%m-%d/')
         self.name = name + datetime.now().strftime('_%H%M%S')
         self.train_summary_writer = SummaryWriter(log_dir='logs/' + self.PATH + self.name)
-        self.loss_prev, self.loss_curr = 0,0
+
+        self.loss_prev = 0
+
     def get_dataset(self):
         return data_generator(batch_size = self.batch_size, img_size = self.img_size, debug=self.DEBUG)
 
@@ -46,12 +48,10 @@ class Trainer:
             pbar = tqdm(enumerate(self.train_ds))
 
             for i,(x,y) in pbar:
-                
+    
                 loss = self.train_step(x,y)
                 
-                self.loss_curr = loss
-                loss_avg = self.loss_curr * i/(i+1) + self.loss_prev * 1/(i+1)
-                self.loss_prev = loss_avg
+                loss_avg = self.calc_loss(i, loss)
                 
                 pbar.set_description(f"Epochs: {e+1}/{self.epochs}, Train loss: {loss_avg:.4f}, LR: {self.optimizer.param_groups[0]['lr']}")
             self.train_summary_writer.add_scalar('/loss/train', loss_avg, e)
@@ -60,8 +60,15 @@ class Trainer:
 
         self.save_model()
 
-    def train_step(self, x, y):
+    def calc_loss(self, idx, loss):
+        
+        loss_avg = loss * idx/(idx+1) + self.loss_prev * 1/(idx+1)
+        self.loss_prev = loss_avg
 
+        return loss_avg
+
+    def train_step(self, x, y):
+        
         x, y = x.to(self.device), y.to(self.device)
 
         y_hat = self.model(x)
@@ -70,7 +77,7 @@ class Trainer:
         self.optimizer.zero_grad()
         loss.backward()
         self.optimizer.step()
-
+        
         return loss.item()
         
     def save_model(self):

@@ -2,13 +2,7 @@
 import torch
 from torch import nn
 from torchmetrics.functional import image_gradients
-from ignite.metrics import SSIM
-from ignite.engine import *
-from ignite.handlers import *
-from ignite.metrics import *
-from ignite.utils import *
-from ignite.contrib.metrics.regression import *
-from ignite.contrib.metrics import *
+from torchmetrics import StructuralSimilarityIndexMeasure
 
 def grad_loss(y_true, y_hat):
 
@@ -30,25 +24,16 @@ def depth_loss(y_true,y_hat):
 
 def DSSIM_loss(y_true, y_hat):
 
-    ssim = SSIM(data_range=1.0,
-                kernel_size=(11,11),
-                sigma=(1.5,1.5),
-                k1=0.01,
-                k2=0.03)
-    ssim.attach(default_evaluator, 'ssim')
-    loss_ssim = default_evaluator.run([[y_true,y_hat]])
-    return 0.5 * (1.0-loss_ssim.metrics['ssim'])
-
-def eval_step(engine, batch):
-    return batch
-
-default_evaluator = Engine(eval_step)
+    ssim = StructuralSimilarityIndexMeasure()
+    
+    loss = ssim(y_hat, y_true)
+    
+    return 0.5 * (1.0-loss)
 
 def loss(y_true, y_hat):
 
-    loss = 0
-    loss += grad_loss(y_true, y_hat)
+    loss = grad_loss(y_true, y_hat)
     loss += depth_loss(y_true, y_hat)
     loss += DSSIM_loss(y_true, y_hat)
-
+    
     return loss
