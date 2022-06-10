@@ -28,11 +28,11 @@ class Trainer:
         #gprint(summary(self.model, input_size=(1,self.img_size,self.img_size)))
         
         self.optimizer = Adam(self.model.parameters(), lr=1e-3)
-        self.LR_Scheduler = StepLR(self.optimizer, step_size=self.epochs/3, gamma=0.1)
+        self.LR_Scheduler = StepLR(self.optimizer, step_size=self.epochs/10, gamma=0.5)
         self.PATH = datetime.now().strftime('%m-%d/')
         self.name = name + datetime.now().strftime('_%H%M%S')
         self.train_summary_writer = SummaryWriter(log_dir='logs/' + self.PATH + self.name)
-
+        self.loss_prev, self.loss_curr = 0,0
     def get_dataset(self):
         return data_generator(batch_size = self.batch_size, img_size = self.img_size, debug=self.DEBUG)
 
@@ -42,16 +42,19 @@ class Trainer:
 
         for e in range(self.epochs):
 
-            loss_avg = []
-            pbar = tqdm(self.train_ds)
+            
+            pbar = tqdm(enumerate(self.train_ds))
 
-            for x,y in pbar:
+            for i,(x,y) in pbar:
                 
                 loss = self.train_step(x,y)
                 
-                loss_avg.append(loss)
-                pbar.set_description(f"Epochs: {e+1}/{self.epochs}, Train loss: {np.mean(loss_avg):.4f}, LR: {self.optimizer.param_groups[0]['lr']}")
-            self.train_summary_writer.add_scalar('/loss/train', np.mean(loss_avg), e)
+                self.loss_curr = loss
+                loss_avg = self.loss_curr * i/(i+1) + self.loss_prev * 1/(i+1)
+                self.loss_prev = loss_avg
+                
+                pbar.set_description(f"Epochs: {e+1}/{self.epochs}, Train loss: {loss_avg:.4f}, LR: {self.optimizer.param_groups[0]['lr']}")
+            self.train_summary_writer.add_scalar('/loss/train', loss_avg, e)
 
             self.LR_Scheduler.step()
 

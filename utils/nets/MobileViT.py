@@ -35,7 +35,7 @@ class MobileViT(nn.Module):
         self.swish = Swish()
 
     def forward(self, x):
-        print(x.shape)
+        
         y = self.swish((self.conv1(self.zeropad(x))))
         y = self.MV1(y)
         
