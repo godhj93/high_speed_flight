@@ -1,8 +1,6 @@
 torch
 torchvision
-torchsummary
 tqdm
 pandas
 torchmetrics
-pytorch-ignite
 tensorboard
