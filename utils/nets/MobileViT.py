@@ -17,14 +17,15 @@ class MobileViT(nn.Module):
 
         self.MV2 = InvertedRedisual(in_channels=32, out_channels=64, strides=2)
         self.MV3 = InvertedRedisual(in_channels=64, out_channels=64, strides=1)
+        self.MV4 = InvertedRedisual(in_channels=64, out_channels=64, strides=1)
 
-        self.MV4 = InvertedRedisual(in_channels=64, out_channels=96, strides=2)
+        self.MV5 = InvertedRedisual(in_channels=64, out_channels=96, strides=2)
         self.ViT1 = MobileViT_Block(in_channels=96, dimension=144, num_of_encoder=2)
 
-        self.MV5 = InvertedRedisual(in_channels=96, out_channels=128, strides=2)
+        self.MV6 = InvertedRedisual(in_channels=96, out_channels=128, strides=2)
         self.ViT2 = MobileViT_Block(in_channels=128, dimension=192, num_of_encoder=4)
         
-        self.MV6 = InvertedRedisual(in_channels=128, out_channels=160, strides=2)
+        self.MV7 = InvertedRedisual(in_channels=128, out_channels=160, strides=2)
         self.ViT3 = MobileViT_Block(in_channels=160, dimension=240, num_of_encoder=3)
 
         self.conv2 = nn.Conv2d(in_channels=160, out_channels=640, kernel_size=1, stride=1, bias=False)
@@ -41,14 +42,15 @@ class MobileViT(nn.Module):
         
         y = self.MV2(y)
         y = self.MV3(y)
-
         y = self.MV4(y)
+
+        y = self.MV5(y)
         y = self.ViT1(y)
         
-        y = self.MV5(y)
+        y = self.MV6(y)
         y = self.ViT2(y)
 
-        y = self.MV6(y)
+        y = self.MV7(y)
         y = self.ViT3(y)
 
         y = self.swish(self.conv2(y))

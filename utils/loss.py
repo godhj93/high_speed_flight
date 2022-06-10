@@ -32,8 +32,9 @@ def DSSIM_loss(y_true, y_hat):
 
 def loss(y_true, y_hat):
 
+    alpha = 0.5
     loss = grad_loss(y_true, y_hat)
-    loss += depth_loss(y_true, y_hat)
+    loss += alpha*depth_loss(y_true, y_hat)
     loss += DSSIM_loss(y_true, y_hat)
     
     return loss

@@ -24,10 +24,11 @@ class Trainer:
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         self.model = model.to(self.device)
         self.loss_fn = loss
+        print(f"  Length: {len(self.train_ds)}")
         print(f"  Device: {self.device}")
         #gprint(summary(self.model, input_size=(1,self.img_size,self.img_size)))
         
-        self.optimizer = Adam(self.model.parameters(), lr=1e-3)
+        self.optimizer = Adam(self.model.parameters(), lr=1e-4)
         self.LR_Scheduler = StepLR(self.optimizer, step_size=self.epochs/10, gamma=0.5)
         self.PATH = datetime.now().strftime('%m-%d/')
         self.name = name + datetime.now().strftime('_%H%M%S')
