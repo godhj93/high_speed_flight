@@ -135,8 +135,8 @@ class MobileViT_Block(nn.Module):
             #Unfold
         y = self.extract_patches(y)
         c,h,w = y.shape
-        y = y.reshape(self.dimension, self.P, -1)
-        y = y.permute(2,1,0)
+        y = y.reshape(N, -1, self.dimension)
+        #y = y.permute(0,3,2,1)
 
             #Transformer encoder
         y = self.encoder(y)

@@ -25,7 +25,7 @@ class Trainer:
         self.model = model.to(self.device)
         self.loss_fn = loss
         print(f"  Device: {self.device}")
-        #print(summary(self.model, input_size=(1,self.img_size,self.img_size)))
+        #gprint(summary(self.model, input_size=(1,self.img_size,self.img_size)))
         
         self.optimizer = Adam(self.model.parameters(), lr=1e-3)
         self.LR_Scheduler = StepLR(self.optimizer, step_size=self.epochs/3, gamma=0.1)
