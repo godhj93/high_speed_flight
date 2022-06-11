@@ -38,7 +38,7 @@ class MobileViT(tf.keras.Model):
 
         self.MV5_1 = InvertedResidual(strides=2, filters=arch[9])
         self.MViT_block_3 = MViT_block(dim=arch[10], n=3, L=3)
-        self.point_conv1 = layers.Conv2D(filters=arch[11], kernel_size=1, strides=1, activation=tf.nn.relu)
+        self.point_conv1 = layers.Conv2D(filters=arch[11], kernel_size=1, strides=1, activation=tf.nn.swish)
         
         self.global_pool = layers.GlobalAveragePooling2D()
         self.logits = layers.Dense(classes, activation = tf.nn.softmax)
@@ -79,9 +79,7 @@ class MobileViT(tf.keras.Model):
         input_shape: (H,W,C), do not specify batch B
         '''
         x = layers.Input(shape=input_shape)
-        model = tf.keras.Model(inputs=[x], outputs=self.call(x))
-        print(model.summary())
-        return model
+        return tf.keras.Model(inputs=[x], outputs=self.call(x))
 
 class InvertedResidual(tf.keras.layers.Layer):
     '''
@@ -101,23 +99,23 @@ class InvertedResidual(tf.keras.layers.Layer):
     def build(self, input_shape):
 
         B,H,W,C = input_shape
-
+        expansion_factor = 4
         self.bn1 = layers.BatchNormalization()
         self.bn2 = layers.BatchNormalization()
         self.bn3 = layers.BatchNormalization()
         self.add = layers.Add()
         
-        self.conv1 = layers.DepthwiseConv2D(kernel_size=3, strides=self.strides, padding='same', use_bias=True, kernel_regularizer=tf.keras.regularizers.l2(0.001))
-        self.relu = tf.nn.relu
+        self.conv1 = layers.DepthwiseConv2D(kernel_size=3, strides=self.strides, padding='same', use_bias=False, kernel_initializer='he_normal', kernel_regularizer=tf.keras.regularizers.l2(0.001))
+        self.swish = tf.nn.swish
 
-        self.point_conv1 = layers.Conv2D(filters=C, kernel_size=1, strides=1, use_bias=True, kernel_regularizer=tf.keras.regularizers.l2(0.001))
-        self.point_conv2 = layers.Conv2D(filters=self.filters, kernel_size=1, strides=1, use_bias=True, kernel_regularizer=tf.keras.regularizers.l2(0.001))
+        self.point_conv1 = layers.Conv2D(filters=C*expansion_factor, kernel_size=1, strides=1, use_bias=False, kernel_initializer='he_normal', kernel_regularizer=tf.keras.regularizers.l2(0.001))
+        self.point_conv2 = layers.Conv2D(filters=self.filters, kernel_size=1, strides=1, use_bias=False, kernel_initializer='he_normal', kernel_regularizer=tf.keras.regularizers.l2(0.001))
 
     def call(self, x):
 
-        y = self.relu( self.bn1( self.point_conv1(x)))
+        y = self.swish( self.bn1( self.point_conv1(x)))
 
-        y = self.relu( self.bn2( self.conv1(y)))
+        y = self.swish( self.bn2( self.conv1(y)))
         
         y = self.bn3 ( self.point_conv2(y))
         
@@ -130,7 +128,7 @@ class MViT_block(tf.keras.layers.Layer):
     MobileViT Block
     https://arxiv.org/abs/2110.02178.pdf
     Author: H.J. Shin
-    Date: 2022.05.26
+    Date: 2022.06.11
     '''
     def __init__(self, dim, n=3, L=1):
         '''
@@ -140,7 +138,7 @@ class MViT_block(tf.keras.layers.Layer):
         '''
         super(MViT_block, self).__init__()
 
-        self.p_dim = dim
+        self.dim = dim
         self.L = L
         self.n = n
         self.w, self.h = 2, 2 #Patch dimension w,h: w,h <= n
@@ -148,116 +146,151 @@ class MViT_block(tf.keras.layers.Layer):
     def build(self, input_shape):
         
         B, H, W, C = input_shape
+        
         P = self.w * self.h
         N = H*W//P
         
-        self.local_rep_conv1 = layers.Conv2D(filters=self.p_dim, kernel_size=3, padding='same', use_bias=True, kernel_regularizer=tf.keras.regularizers.l2(0.001), activation=tf.nn.relu)
-        self.local_rep_conv2 = layers.Conv2D(filters=self.p_dim, kernel_size=1, use_bias=True, kernel_regularizer=tf.keras.regularizers.l2(0.001), activation=tf.nn.relu)
-        #output : H W self.p_dim
-
+        self.local_rep_conv1 = layers.Conv2D(filters=C, kernel_size=3, padding='same', use_bias=False, kernel_initializer='he_normal', kernel_regularizer=tf.keras.regularizers.l2(0.001), activation=tf.nn.swish)
+        self.local_rep_conv2 = layers.Conv2D(filters=self.dim, kernel_size=1, use_bias=False, kernel_initializer='he_normal', kernel_regularizer=tf.keras.regularizers.l2(0.001), activation=tf.nn.swish)
         
-        self.reshape = layers.Reshape((-1,P,self.p_dim))
-
-        # self.flatten = layers.Flatten()
+        # self.reshape1 = layers.Reshape([N, P*self.dim])
+        self.reshape1 = layers.Reshape([N, P, self.dim])
+        
+        self.get_patches = extract_patches()
+        self.reconstuct = patches_to_image(H,C)
         
         self.encoders = []
-        for i in range(self.L):
-            self.encoders.append(T_encoder(num_heads=2, project_dim=self.p_dim))
+        for _ in range(self.L):
+            
+            self.encoders.append(EncoderLayer(d_model= self.dim , num_heads=1, dff= self.dim*2 ))
 
         self.concat = layers.Concatenate()
         
-        
-        self.reshape2 = layers.Reshape((-1,W,self.p_dim))
-
-        self.point_conv = layers.Conv2D(filters= C, kernel_size= 1, strides= 1, use_bias=True, kernel_regularizer=tf.keras.regularizers.l2(0.001), activation= tf.nn.relu)
-        self.conv = layers.Conv2D(filters= C, kernel_size= self.n, strides= 1, use_bias=True, kernel_regularizer=tf.keras.regularizers.l2(0.001), padding='same', activation= tf.nn.relu)
+        self.fusion_conv1 = layers.Conv2D(filters= C, kernel_size= 1, strides= 1, use_bias=False, kernel_initializer='he_normal', kernel_regularizer=tf.keras.regularizers.l2(0.001), activation= tf.nn.swish)
+        self.fusion_conv2 = layers.Conv2D(filters= C, kernel_size= self.n, strides= 1, use_bias=False, kernel_initializer='he_normal', kernel_regularizer=tf.keras.regularizers.l2(0.001), padding='same', activation= tf.nn.swish)
     
     def call(self, x):
         
+        B,H,W,C = x.shape
+      
         #Local representations
         y = self.local_rep_conv1(x)
-        conv_feature = self.local_rep_conv2(y) 
-        _, _, _, d = conv_feature.shape
+        y = self.local_rep_conv2(y)
         
-        #####
-        # Transformers as Convolutions(global representations)
-        #   Unfold
-        y = self.extract_patches(conv_feature)
-        extracted_patch_shape = y.shape
-        # patches = tf.image.extract_patches(y, sizes=[1, self.h, self.w, 1], strides=[1, self.h, self.w, 1], padding='VALID', rates=[1,1,1,1])
-        y = tf.reshape(y, [-1, self.h, self.w, d])
-        
-        #   Transformer Encoder
-        for i in range(self.L): 
-            y = self.encoders[i](y)
-        #   Fold
-        y = tf.reshape(y, (-1, extracted_patch_shape[1], extracted_patch_shape[2], extracted_patch_shape[3]))
-        y = self.extract_patches_inverse(conv_feature,y)
+        #Unfold
+        patches = self.get_patches(y) # patches shape -> (H/self.h, W/self.w, self.dim*4)
        
-
-        #Fusions
-        y = self.point_conv(y)
+        _, num_patches, patch_h , patch_w, dim_features = patches.shape
         
+        y = self.reshape1(patches)
+        
+        for encoder in self.encoders:
+            y = encoder(y)
+       
+        y = tf.reshape(y, (-1,num_patches, patch_h, patch_w, dim_features))
+        
+        y = self.reconstuct(y)
+        
+        y = self.fusion_conv1(y)
         y = self.concat([y,x])
+        y = self.fusion_conv2(y)
         
-        return self.conv(y)
-        
-    
-    '''
-    Ref: https://stackoverflow.com/questions/44047753/reconstructing-an-image-after-using-extract-image-patches
-    '''
-    @tf.function
-    def extract_patches(self,x):
-        return tf.image.extract_patches(
-            x,
-            (1, self.h, self.w, 1),
-            (1, self.h, self.w, 1),
-            (1, 1, 1, 1),
-            padding="VALID"
-        )
-    @tf.function
-    def extract_patches_inverse(self,x, y):
-        _x = tf.zeros_like(x)
-        _y = self.extract_patches(_x)
-        grad = tf.gradients(_y, _x)[0]
-        # Divide by grad, to "average" together the overlapping patches
-        # otherwise they would simply sum up
-        return tf.gradients(_y, _x, grad_ys=y)[0] / grad
-    
-    
-class T_encoder(tf.keras.layers.Layer):
-    '''
-    Transformer Encoder
-    https://arxiv.org/pdf/2010.11929.pdf
-    Author: H.J. Shin
-    Date: 2022.02.12
-    '''
-    def __init__(self, num_heads, project_dim):
-        super(T_encoder, self).__init__()
-        self.p_dim = project_dim
-        self.num_heads = num_heads
+        return y
+  
+'''
+Ref: https://stackoverflow.com/questions/44047753/reconstructing-an-image-after-using-extract-image-patches
+'''
+
+class extract_patches(tf.keras.layers.Layer):
+ 
+    def __init__(self):
+        super(extract_patches, self).__init__()
+        self.p = 2
+        self.pad = [[0,0],[0,0]]
         
     def build(self, input_shape):
         
-        B,H,W,C = input_shape
-        self.norm1 = layers.LayerNormalization()
-        self.norm2 = layers.LayerNormalization()
+        self.reshape = layers.Reshape([(input_shape[1]//2)**2, 2,2, input_shape[-1]])
+        self.h, self.c = input_shape[1], input_shape[-1]
         
-        self.add = layers.Add()
-
-        self.MHA = layers.MultiHeadAttention(num_heads= self.num_heads, key_dim= self.p_dim, value_dim=None, use_bias=True, kernel_regularizer=tf.keras.regularizers.l2(0.001))
-        self.MLP = layers.Dense(C, activation=tf.nn.relu, use_bias=True, kernel_regularizer=tf.keras.regularizers.l2(0.001))
-
-    def call(self, x):
+    def call(self,x):
         
-        y = self.norm1(x)
-    
-        y = self.MHA(y,y)
-    
-        residual = self.add([x,y])
+        self.h, self.c = x.shape[1], x.shape[-1]
+        patches = tf.space_to_batch_nd(x,[self.p,self.p],self.pad)
+        patches = tf.split(patches,self.p*self.p,0)
+        patches = tf.stack(patches,3)
+        
+        patches = self.reshape(patches)
+        
+        return patches
 
-        y = self.norm2(residual)
-    
-        y = self.MLP(y)
 
-        return self.add([residual, y])
+class patches_to_image(tf.keras.layers.Layer):
+ 
+    def __init__(self, H, C):
+        super(patches_to_image, self).__init__()
+        
+        self.pad = [[0,0],[0,0]]
+        self.p = 2
+        self.h = H
+        self.channel = C
+
+    def build(self, input_shape):
+        
+        B, Num_patches, Patch_H, Patch_W, C = input_shape
+
+        self.c = C
+        self.reshape1 = layers.Reshape([self.h//self.p, self.h//self.p, self.p*self.p, self.c])
+        self.reshape2 = layers.Reshape([self.p*self.p,self.h//self.p,self.h//self.p,self.c])
+        self.reshape3 = layers.Reshape([self.h, self.h, self.c])
+        
+    def call(self, patches):
+
+       
+        patches_proc = self.reshape1(patches)
+       
+        patches_proc = tf.split(patches_proc,self.p*self.p,3)
+        
+        patches_proc = tf.stack(patches_proc,axis=1)
+       
+        patches_proc = self.reshape2(patches_proc)
+        
+        reconstructed = self.reshape3(patches_proc)
+       
+        return reconstructed
+
+
+'''
+Ref: https://www.tensorflow.org/text/tutorials/transformer#multi-head_attention
+'''
+class EncoderLayer(tf.keras.layers.Layer):
+    
+    def __init__(self,*, d_model, num_heads, dff, rate=0.1):
+        super(EncoderLayer, self).__init__()
+
+        self.mha = layers.MultiHeadAttention(key_dim=d_model, num_heads=num_heads)
+        self.ffn = self.point_wise_feed_forward_network(d_model, dff)
+
+        self.layernorm1 = tf.keras.layers.LayerNormalization(epsilon=1e-6)
+        self.layernorm2 = tf.keras.layers.LayerNormalization(epsilon=1e-6)
+
+        self.dropout1 = tf.keras.layers.Dropout(rate)
+        self.dropout2 = tf.keras.layers.Dropout(rate)
+
+    
+    def point_wise_feed_forward_network(self, d_model, dff):
+        return tf.keras.Sequential([
+                tf.keras.layers.Dense(dff, activation='relu'),  # (batch_size, seq_len, dff)
+                tf.keras.layers.Dense(d_model)  # (batch_size, seq_len, d_model)
+            ])
+    def call(self, x, training):
+        
+        attn_output = self.mha(x, x, x)  # (batch_size, input_seq_len, d_model)
+        attn_output = self.dropout1(attn_output, training=training)
+        out1 = self.layernorm1(x + attn_output)  # (batch_size, input_seq_len, d_model)
+
+        ffn_output = self.ffn(out1)  # (batch_size, input_seq_len, d_model)
+        ffn_output = self.dropout2(ffn_output, training=training)
+        out2 = self.layernorm2(out1 + ffn_output)  # (batch_size, input_seq_len, d_model)
+
+        return out2
