@@ -9,7 +9,7 @@ class MobileViT(tf.keras.Model):
     Author: H.J. Shin
     Date: 2022.02.12
     '''
-    def __init__(self, classes=1000, arch='S'):
+    def __init__(self, classes=64, arch='S'):
         '''
         classes: number of logits, default=1000(Imagenet)
         '''
@@ -22,6 +22,7 @@ class MobileViT(tf.keras.Model):
         if arch not in ['S', 'XS', 'XXS']:
             raise ValueError("arch must be 'S', 'XS', 'XXS'")
 
+        self.classes = classes
         arch = ViTArch[arch]
         self.conv3x3 = layers.Conv2D(kernel_size= 3, filters= arch[0], strides= 2, padding= 'same')
         self.MV1_1 = InvertedResidual(strides= 1, filters= arch[1])
@@ -41,7 +42,7 @@ class MobileViT(tf.keras.Model):
         self.point_conv1 = layers.Conv2D(filters=arch[11], kernel_size=1, strides=1, activation=tf.nn.swish)
         
         self.global_pool = layers.GlobalAveragePooling2D()
-        self.logits = layers.Dense(classes, activation = tf.nn.softmax)
+        self.logits = layers.Dense(classes*3, activation = tf.nn.relu)
 
     def call(self, x):
        
@@ -71,7 +72,7 @@ class MobileViT(tf.keras.Model):
         
         y = self.global_pool(y)
         
-        return self.logits(y)
+        return tf.reshape(self.logits(y), (-1,3,self.classes))
     
     def model(self, input_shape):
         '''

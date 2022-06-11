@@ -9,8 +9,10 @@ class AutoEncoder(tf.keras.Model):
         super(AutoEncoder, self).__init__()
         self.size = size
         self.encoder = MobileViT(arch=arch, classes=classes).model(input_shape=(self.size,self.size,1))
-        # self.encoder = BinaryDenseNet(arch='bdn-45', use_binary_downsampling = False, classes= classes).model(input_shape=(self.size,self.size,1))
-        self.decoder = InvertedMobileViT().model(input_shape=(classes))
+        
+#        self.encoder = BinaryDenseNet(arch='bdn-45', use_binary_downsampling = False, classes= classes).model(input_shape=(self.size,self.size,1))
+        print(f"ENCODER: {self.encoder.summary()}")
+        self.decoder = InvertedMobileViT().model(input_shape=(3,classes))
         # self.build(input_shape=(None,self.size,self.size,1))
     def call(self, x):
 
