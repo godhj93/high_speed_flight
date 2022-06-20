@@ -39,11 +39,12 @@ class MobileViT(tf.keras.Model):
 
         self.MV5_1 = InvertedResidual(strides=2, filters=arch[9])
         self.MViT_block_3 = MViT_block(dim=arch[10], n=3, L=3)
-        self.point_conv1 = layers.Conv2D(filters=arch[11], kernel_size=1, strides=1, activation=tf.nn.swish)
+#        self.point_conv1 = layers.Conv2D(filters=arch[11], kernel_size=1, strides=1, activation=tf.nn.swish)
+        self.point_conv1 = layers.Conv2D(filters=3, kernel_size=1, strides=1, activation=tf.nn.relu)
         
-        self.global_pool = layers.GlobalAveragePooling2D()
+       # self.global_pool = layers.GlobalAveragePooling2D()
         self.logits = layers.Dense(classes*3, activation = tf.nn.relu)
-
+        
     def call(self, x):
        
         y = self.conv3x3(x)
@@ -65,16 +66,16 @@ class MobileViT(tf.keras.Model):
         y = self.MViT_block_2(y)
         
         y = self.MV5_1(y)
-        
+
         y = self.MViT_block_3(y)
         
         y = self.point_conv1(y)
         
-        y = self.global_pool(y)
-        
-        return tf.reshape(self.logits(y), (-1,3,self.classes))
+#        y = self.global_pool(y)
+        y = tf.reshape(y, (-1, 64,3))
+        return tf.transpose(y, perm=[0,2,1]) #tf.reshape(self.logits(y), (-1,3,self.classes))
     
-    def model(self, input_shape):
+    def model(self, input_shape=(256,256,1)):
         '''
         This method makes the command "model.summary()" work.
         input_shape: (H,W,C), do not specify batch B
@@ -107,16 +108,16 @@ class InvertedResidual(tf.keras.layers.Layer):
         self.add = layers.Add()
         
         self.conv1 = layers.DepthwiseConv2D(kernel_size=3, strides=self.strides, padding='same', use_bias=False, kernel_initializer='he_normal', kernel_regularizer=tf.keras.regularizers.l2(0.001))
-        self.swish = tf.nn.swish
+        self.relu = tf.nn.relu
 
         self.point_conv1 = layers.Conv2D(filters=C*expansion_factor, kernel_size=1, strides=1, use_bias=False, kernel_initializer='he_normal', kernel_regularizer=tf.keras.regularizers.l2(0.001))
         self.point_conv2 = layers.Conv2D(filters=self.filters, kernel_size=1, strides=1, use_bias=False, kernel_initializer='he_normal', kernel_regularizer=tf.keras.regularizers.l2(0.001))
 
     def call(self, x):
 
-        y = self.swish( self.bn1( self.point_conv1(x)))
+        y = self.relu( self.bn1( self.point_conv1(x)))
 
-        y = self.swish( self.bn2( self.conv1(y)))
+        y = self.relu( self.bn2( self.conv1(y)))
         
         y = self.bn3 ( self.point_conv2(y))
         
@@ -151,8 +152,8 @@ class MViT_block(tf.keras.layers.Layer):
         P = self.w * self.h
         N = H*W//P
         
-        self.local_rep_conv1 = layers.Conv2D(filters=C, kernel_size=3, padding='same', use_bias=False, kernel_initializer='he_normal', kernel_regularizer=tf.keras.regularizers.l2(0.001), activation=tf.nn.swish)
-        self.local_rep_conv2 = layers.Conv2D(filters=self.dim, kernel_size=1, use_bias=False, kernel_initializer='he_normal', kernel_regularizer=tf.keras.regularizers.l2(0.001), activation=tf.nn.swish)
+        self.local_rep_conv1 = layers.Conv2D(filters=C, kernel_size=3, padding='same', use_bias=False, kernel_initializer='he_normal', kernel_regularizer=tf.keras.regularizers.l2(0.001), activation=tf.nn.relu)
+        self.local_rep_conv2 = layers.Conv2D(filters=self.dim, kernel_size=1, use_bias=False, kernel_initializer='he_normal', kernel_regularizer=tf.keras.regularizers.l2(0.001), activation=tf.nn.relu)
         
         # self.reshape1 = layers.Reshape([N, P*self.dim])
         self.reshape1 = layers.Reshape([N, P, self.dim])
@@ -167,8 +168,8 @@ class MViT_block(tf.keras.layers.Layer):
 
         self.concat = layers.Concatenate()
         
-        self.fusion_conv1 = layers.Conv2D(filters= C, kernel_size= 1, strides= 1, use_bias=False, kernel_initializer='he_normal', kernel_regularizer=tf.keras.regularizers.l2(0.001), activation= tf.nn.swish)
-        self.fusion_conv2 = layers.Conv2D(filters= C, kernel_size= self.n, strides= 1, use_bias=False, kernel_initializer='he_normal', kernel_regularizer=tf.keras.regularizers.l2(0.001), padding='same', activation= tf.nn.swish)
+        self.fusion_conv1 = layers.Conv2D(filters= C, kernel_size= 1, strides= 1, use_bias=False, kernel_initializer='he_normal', kernel_regularizer=tf.keras.regularizers.l2(0.001), activation= tf.nn.relu)
+        self.fusion_conv2 = layers.Conv2D(filters= C, kernel_size= self.n, strides= 1, use_bias=False, kernel_initializer='he_normal', kernel_regularizer=tf.keras.regularizers.l2(0.001), padding='same', activation= tf.nn.relu)
     
     def call(self, x):
         
