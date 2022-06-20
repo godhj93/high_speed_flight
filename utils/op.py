@@ -68,6 +68,7 @@ class Trainer:
             
             train_bar = self.progress_bar('train')
             for step,(x,y) in train_bar:
+                
                 if step == self.step:
                     break   
                 

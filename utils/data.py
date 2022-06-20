@@ -37,7 +37,7 @@ class data_load():
         # pure_img = tf.clip_by_value(pure_img * 10, 0, 10)
 
         #noisy_img = noisy_img * (tf.math.reduce_max(pure_img)/ tf.math.reduce_max(noisy_img))
-
+        
         return noisy_img, pure_img
 
     def get_batched_dataset(self):
