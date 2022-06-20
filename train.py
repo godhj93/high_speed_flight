@@ -12,13 +12,13 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 parser = argparse.ArgumentParser('Train MobilViT AutoEncoder')
 parser.add_argument("--ep", default=20, type=int,help="Epochs")
-parser.add_argument("--bs", default=16, type=int,help="Batch Size")
-parser.add_argument("--arch", default='S', type=str,help="Architecture: [S, XS, XSS]")
+parser.add_argument("--bs", default=32, type=int,help="Batch Size")
+parser.add_argument("--arch", default='XXS', type=str,help="Architecture: [S, XS, XSS]")
 parser.add_argument("--data", default='NYUv2')
 parser.add_argument("--name", default='AutoEncoder')
 parser.add_argument("--alpha", type=float, default=0.5)
 parser.add_argument("--states", type=int, default=64)
-parser.add_argument("--size", type=int, default=224)
+parser.add_argument("--size", type=int, default=256)
 parser.add_argument("--debug", default=False)
 args = parser.parse_args()
 
